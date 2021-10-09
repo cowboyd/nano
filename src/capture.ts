@@ -8,3 +8,11 @@ export function* capture<T>(block: () => Operation<T>): Operation<Outcome<T>> {
     return { type: 'errored', error: error as Error }
   }
 }
+
+export function* release<T>(outcome: Outcome<T>): Operation<T> {
+  if (outcome.type === 'completed') {
+    return outcome.value;
+  } else {
+    throw outcome.error;
+  }
+}
