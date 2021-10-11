@@ -1,5 +1,5 @@
 import { describe, it } from 'mocha';
-import { createTask, Task, Operation } from '../src';
+import { createTask, Task, Operation, spawn, suspend } from '../src';
 import { evaluate } from '../src/continuation';
 import expect from 'expect';
 
@@ -21,9 +21,26 @@ describe('running a task', () => {
         evaluate(() => run(function*() { throw new Error('boom'); }));
       }).toThrow('boom');
     });
-
   });
 
+
+  describe('spawning a subtask', () => {
+    it('halts all spawned tasks when the parent completes', () => {
+      let halted = false;
+      let result = run<string>(function*() {
+        yield* spawn(function*() {
+          try {
+            yield* suspend();
+          } finally {
+            halted = true;
+          }
+        })
+        return 'done';
+      });
+      expect(evaluate(function*() { return yield* result })).toEqual('done');
+      expect(halted).toEqual(true);
+    });
+  });
 });
 
 
