@@ -131,3 +131,21 @@ export function* resource<T>(init: () => Operation<T>): Operation<T> {
     });
   });
 }
+
+
+export function* all<T>(...operations: Operation<T>[]): Operation<T[]> {
+  return yield* perform(function*(resolve) {
+    let tasks: Task<T>[] = [];
+
+    for (let operation of operations) {
+      tasks.push(yield* createTask(() => operation));
+    }
+
+    let results: T[] = [];
+    for (let task of tasks) {
+      results.push(yield* task);
+    }
+
+    resolve(results);
+  })
+}
