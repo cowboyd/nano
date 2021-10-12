@@ -120,5 +120,20 @@ everywhere else except for promises which would be `yield promise`. That could
 be confusing, along with the fact that using bare `yield` for promises would
 suffer from the same issues typing issues as in Effection v1 and v2.
 
+#### no implicit suspend
+
+For the same reason that `Promise` is not yieldable, neither is `undefined`.
+Since it is not iterable, it cannot be used with a `yield*` expression which
+means that you must have an explicit `suspend()` operation if that's what you
+want your task to do. Again, we could include `undefined` in the `Control` type,
+but it feels awkward to sometimes use `yield` and sometimes `yield*` Of all the
+clear departures from the old API, I think this is not very controversial.
+
+#### Inspector may be very different
+
+With the sparse task tree that only has tasks for concurrent operations, it is a
+big unknown how we will generate the visualization for operations on the stack.
+Will this radically affect how we generate our visualization?
+
 [Effection]: https://frontside.com/effection
 [state monad pattern]: https://github.com/cowboyd/delimited-continuations-tutorial/blob/main/exercise-9.ts
