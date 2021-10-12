@@ -13,7 +13,7 @@ interface TaskState<T> {
 }
 
 interface Operator<T = unknown> {
-  (state: TaskState<T>): Operation<TaskState<T>>
+  (state: TaskState<T>): TaskState<T>;
 }
 
 export function* createTask<T>(block: () => Operation<T>): Operation<Task<T>> {
@@ -57,27 +57,25 @@ function* runState<T>(block: () => Operation<T>, state: TaskState<T>): Operation
   let continuation = (x => x) as Continuation;
   let start = yield* reset<Continue<TaskState<T>>>(function*() {
     continuation = yield* shift<Continuation>(function*(k): Operation<Operator> {
-      return function*(state) { return yield* k(k)(state); }
+      return state => k(k)(state);
     })
     state.settle(yield* capture(block));
     return function*() { return state; };
   });
-  yield* start(state);
+  start(state);
   return () => continuation.return({});
 };
 
 
 export function* suspend() {
-  return yield* shift<void>(function*(): Operation<Operator> {
-    return function*(state) { return state;};
-  });
+  return yield* perform(function*() { });
 }
 
 export function* spawn<T>(block: () => Operation<T>): Operation<Task<T>> {
   return yield* shift<Task<T>>(function*(k): Operation<Operator> {
-    //yield* reset(function*() {});
     let child = yield* createTask(block);
-    return function*(state) {
+
+    return function(state) {
       evaluate(function*() {
         let outcome = yield* child.outcome();
         state.children.delete(child);
@@ -86,7 +84,7 @@ export function* spawn<T>(block: () => Operation<T>): Operation<Task<T>> {
         }
       });
       state.children.add(child);
-      return yield* k(child)(state);
+      return k(child)(state);
     }
   })
 }
@@ -94,9 +92,7 @@ export function* spawn<T>(block: () => Operation<T>): Operation<Task<T>> {
 export function* perform<T>(block: (resolve: Continue<T>) => Operation): Operation<T> {
   return yield* shift<T>(function*(k): Operation<Operator> {
     yield* block(k);
-    return function*(state) {
-      return state;
-    }
+    return state => state;
   })
 }
 
