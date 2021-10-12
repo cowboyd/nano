@@ -2,7 +2,7 @@ import { Operation, shift, reset, Continuation, evaluate, Continue } from './con
 import { createDestiny } from './destiny';
 import { capture, release, catchHalt, Outcome, halted } from './outcome';
 
-export interface Task<T = unknown> extends Operation<T> {
+export interface Task<T = unknown> extends Operation<T>, Promise<T> {
   halt(): Operation<void>;
   outcome(): Operation<Outcome<T>>;
 }
@@ -17,6 +17,15 @@ type Operator = Operation<(state: TaskState) => TaskState>;
 export function* createTask<T>(block: () => Operation<T>): Operation<Task<T>> {
   let children = new Set<Task>();
   let [finish, finished] = yield* createDestiny<T>();
+  let promise = new Promise<T>((resolve, reject) => {
+    evaluate(function*() {
+      try {
+        resolve(yield* release(yield* finished));
+      } catch (error) {
+        reject(error);
+      }
+    });
+  })
 
   return yield* reset<Task<T>>(function*() {
 
@@ -36,6 +45,10 @@ export function* createTask<T>(block: () => Operation<T>): Operation<Task<T>> {
           return yield* catchHalt(yield* finished);
         },
         outcome: () => finished,
+        then: (...args) => promise.then(...args),
+        catch: (...args) => promise.catch(...args),
+        finally: (...args) => promise.finally(...args),
+        [Symbol.toStringTag]: 'Task',
         *[Symbol.iterator]() {
           return yield* release(yield* finished);
         }
@@ -87,9 +100,9 @@ export function* spawn<T>(block: () => Operation<T>): Operation<Task<T>> {
   })
 }
 
-export function* perform<T>(block: (resolve: Continue<T>) => Operation<void>): Operation<T> {
+export function* perform<T>(block: (resolve: Continue<T>, reject: Continue<Error>) => Operation<void>): Operation<T> {
   return yield* shift<T>(function*(k): Operator {
-    yield* block(k);
+    yield* block(k, k.throw);
     return state => state;
   })
 }
@@ -105,16 +118,16 @@ export function* sleep(duration: number): Operation<void> {
   })
 }
 
-// export function* resource<T>(init: () => Operation<T>): Operation<T> {
-//   return yield* perform(function*(resolve, reject) {
-//     yield* spawn(function*() { //resource task
-//       try {
-//         let value = yield* init();
-//         resolve(value);
-//       } catch(error) {
-//         reject(error as Error)
-//       }
-//       yield* suspend(); // resource tasks suspends
-//     });
-//   });
-// }
+export function* resource<T>(init: () => Operation<T>): Operation<T> {
+  return yield* perform(function*(resolve, reject) {
+    yield* spawn(function*() { //resource task
+      try {
+        let value = yield* init();
+        resolve(value);
+      } catch(error) {
+        reject(error as Error)
+      }
+      yield* suspend(); // resource tasks suspends
+    });
+  });
+}

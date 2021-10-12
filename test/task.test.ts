@@ -1,5 +1,5 @@
 import { describe, it } from 'mocha';
-import { createTask, Task, Operation, spawn, suspend, perform } from '../src';
+import { createTask, Task, Operation, spawn, suspend, perform, sleep } from '../src';
 import { evaluate } from '../src/continuation';
 import expect from 'expect';
 
@@ -60,6 +60,14 @@ describe('running a task', () => {
       });
       return yield* task;
     })).toEqual('Hi')
+  });
+
+  it('can perform a task asynchronously', async() => {
+    let task = run<string>(function*() {
+      yield* sleep(10);
+      return 'yawn';
+    });
+    expect(task).resolves.toEqual('yawn');
   });
 });
 
