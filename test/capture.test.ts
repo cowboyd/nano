@@ -1,7 +1,7 @@
 import { describe, it } from 'mocha';
 import expect from 'expect';
 import { evaluate } from '../src/continuation';
-import { capture } from '../src/capture';
+import { capture } from '../src/outcome';
 
 describe('capture', () => {
   it('can capture completed operations', () => {

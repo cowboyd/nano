@@ -1,5 +1,5 @@
 import { describe, it } from 'mocha';
-import { createTask, Task, Operation, spawn, suspend } from '../src';
+import { createTask, Task, Operation, spawn, suspend, perform } from '../src';
 import { evaluate } from '../src/continuation';
 import expect from 'expect';
 
@@ -40,6 +40,26 @@ describe('running a task', () => {
       expect(evaluate(function*() { return yield* result })).toEqual('done');
       expect(halted).toEqual(true);
     });
+
+    it('errors out the parent when a spawned task fails', () => {
+      let task = run<void>(function*() {
+        yield* spawn(function*() {
+          throw new Error('boom!');
+        });
+      });
+      expect(() => evaluate(() => task)).toThrowError('boom!');
+    });
+  });
+
+  it('can perform a task synchronously', () => {
+    expect(evaluate(function*() {
+      let task = yield* createTask(function*() {
+        return yield* perform<string>(function*(resolve) {
+          resolve('Hi');
+        })
+      });
+      return yield* task;
+    })).toEqual('Hi')
   });
 });
 

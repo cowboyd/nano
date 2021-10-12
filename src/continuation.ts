@@ -1,7 +1,3 @@
-export type Outcome<T> =
-  { type: 'completed', value: T } |
-  { type: 'errored', error: Error };
-
 export interface Continue<T = any, R = any> {
   (value: T): R;
 }
