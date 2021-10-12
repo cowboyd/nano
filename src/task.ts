@@ -7,14 +7,12 @@ export interface Task<T = unknown> extends Operation<T> {
   outcome(): Operation<Outcome<T>>;
 }
 
-interface TaskState<T> {
+interface TaskState<T = unknown> {
   children: Set<Task>;
   settle: Continue<Outcome<T>>;
 }
 
-interface Operator<T = unknown> {
-  (state: TaskState<T>): TaskState<T>;
-}
+type Operator = Operation<(state: TaskState) => TaskState>;
 
 export function* createTask<T>(block: () => Operation<T>): Operation<Task<T>> {
   let children = new Set<Task>();
@@ -56,7 +54,7 @@ export function* createTask<T>(block: () => Operation<T>): Operation<Task<T>> {
 function* runState<T>(block: () => Operation<T>, state: TaskState<T>): Operation<() => Operation<void>> {
   let continuation = (x => x) as Continuation;
   let start = yield* reset<Continue<TaskState<T>>>(function*() {
-    continuation = yield* shift<Continuation>(function*(k): Operation<Operator> {
+    continuation = yield* shift<Continuation>(function*(k): Operator {
       return state => k(k)(state);
     })
     state.settle(yield* capture(block));
@@ -72,7 +70,7 @@ export function* suspend() {
 }
 
 export function* spawn<T>(block: () => Operation<T>): Operation<Task<T>> {
-  return yield* shift<Task<T>>(function*(k): Operation<Operator> {
+  return yield* shift<Task<T>>(function*(k): Operator {
     let child = yield* createTask(block);
 
     return function(state) {
@@ -89,8 +87,8 @@ export function* spawn<T>(block: () => Operation<T>): Operation<Task<T>> {
   })
 }
 
-export function* perform<T>(block: (resolve: Continue<T>) => Operation): Operation<T> {
-  return yield* shift<T>(function*(k): Operation<Operator> {
+export function* perform<T>(block: (resolve: Continue<T>) => Operation<void>): Operation<T> {
+  return yield* shift<T>(function*(k): Operator {
     yield* block(k);
     return state => state;
   })
