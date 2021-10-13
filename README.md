@@ -34,6 +34,15 @@ values and not yielded values, the TypeScript compiler can trivially
 discriminate the type of the left-hand side of an assignment. This is one of the
 weaknesses of both Effection v1 and v2
 
+``` typescript
+function* () {
+  // TS knows that this is a `Task<string>`
+  let task = yield* spawn(function*() { return "Hello!" });
+
+  // TS knows that this is a `string`
+  let message = yield* task;
+}
+```
 
 #### "Thin" operations
 
