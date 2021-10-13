@@ -3,14 +3,34 @@
 A controller-free implementation of [Effection][] primitives based entirely
 on delimited continuations.
 
-It works by making generators themselves the fundamental unit of composition, so
-as a result, there is no need to explicitly "drive" them with a controller.
-Instead, tasks are driven at the edges of the computation by directly invoking
-continuations. For example, even `halt()` just invokes a continuation of a
-computation.
+It works by making generators themselves the fundamental unit of
+composition. The only things that an operation can yield are either
+`Reset` or `Shift` values, so as a result, there is no need to
+explicitly "drive" them with a controller.  Instead, tasks are driven
+at the edges of the computation by directly invoking
+continuations. For example, even `halt()` just invokes a continuation
+of a computation.
 
 Operations are able to access and compose task state using a continuation based
-implementation of the [state monad pattern][].
+implementation of the [state monad pattern][]. It looks almost exactly like
+current Effection except that it uses `yield*` to evaluate operations instead of
+`yield`.
+
+
+``` typescript
+main(function*() {
+  let rested = false;
+  try {
+    yield* sleep(1000);
+    rested = true;
+  } finally {
+    if (rested) {
+      console.log(`yawn.... I feel great`);
+    } else {
+      console.log(`you interrupted my nap!!`);
+    }
+  }
+```
 
 This simplification of the runtime by basing it on absurdly powerful
 control-flow abstractions has several key consequences.
