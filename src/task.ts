@@ -119,14 +119,10 @@ export function* sleep(duration: number): Operation<void> {
 }
 
 export function* resource<T>(init: () => Operation<T>): Operation<T> {
-  return yield* perform(function*(resolve, reject) {
+  return yield* perform(function*(resolve) {
     yield* spawn(function*() { //resource task
-      try {
-        let value = yield* init();
-        resolve(value);
-      } catch(error) {
-        reject(error as Error)
-      }
+      let handle = yield* init();
+      resolve(handle);
       yield* suspend(); // resource tasks suspends
     });
   });

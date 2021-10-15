@@ -90,14 +90,10 @@ without needing any hooks from the core:
 
 ``` typescript
 export function* resource<T>(init: () => Operation<T>): Operation<T> {
-  return yield* perform(function*(resolve, reject) {
+  return yield* perform(function*(resolve) {
     yield* spawn(function*() { //resource task
-      try {
-        let value = yield* init();
-        resolve(value);
-      } catch(error) {
-        reject(error as Error)
-      }
+      let handle = yield* init();
+      resolve(handle);
       yield* suspend(); // resource tasks suspends
     });
   });
@@ -110,8 +106,8 @@ inside of the resource task, the various elements being shut down at
 the right time. The only difference is that it can be expressed as
 simple function without any "scope switching" logic to manage where
 child tasks end up. Instead, because of "thin" perform, the `spawn()`
-composes with the enclosing task. And also, anything in `init()`
-composes cleanly into the spawned resource task.
+composes with the enclosing task. And also, anything spawned in `init()`
+composes cleanly and is kept alive inside the resource task.
 
 ``` typescript
 function* run() {
