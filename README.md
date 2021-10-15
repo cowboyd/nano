@@ -11,6 +11,11 @@ at the edges of the computation by directly invoking
 continuations. For example, even `halt()` just invokes a continuation
 of a computation.
 
+`reset()` is used to define the boundaries of a continuation, and `shift()` is
+used to capture references to, and drive that continuation. Thus, every
+operation is decomposed into a stream of `Reset` and `Shift` values ended by a
+return value.
+
 Operations are able to access and compose task state using a continuation based
 implementation of the [state monad pattern][]. It looks almost exactly like
 current Effection except that it uses `yield*` to evaluate operations instead of
@@ -163,6 +168,14 @@ clear departures from the old API, I think this is not very controversial.
 With the sparse task tree that only has tasks for concurrent operations, it is a
 big unknown how we will generate the visualization for operations on the stack.
 Will this radically affect how we generate our visualization?
+
+### Open Questions
+
+1. If combinators are "thin", how will stream combinators effect the task tree?
+Currently in Effection, there is a nested resource created for each
+`map()`,`filter()`, etc... operation.
+2. If we were to base some future version of Effection on this strategy, how
+could we migrate users forward without losing them forever?
 
 [Effection]: https://frontside.com/effection
 [state monad pattern]: https://github.com/cowboyd/delimited-continuations-tutorial/blob/main/exercise-9.ts
